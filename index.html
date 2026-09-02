@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#20242a"
+    >
+
+    <meta
+        name="description"
+        content="Personal strength and cardio fitness tracker"
+    >
+
+    <title>My Fitness Tracker</title>
+
+    <link
+        rel="manifest"
+        href="manifest.json"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="icons/icon-192.png"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/styles.css"
+    >
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js"
+        defer
+    ></script>
+
+    <script
+        type="module"
+        src="js/app.js"
+    ></script>
+</head>
+
+<body>
+
+<header>
+    <h1>My Fitness Tracker</h1>
+    <p>Strength + cardio + progressive training dashboard</p>
+</header>
+
+<nav>
+    <button class="nav-btn active" data-tab="dashboard">
+        Dashboard
+    </button>
+
+    <button class="nav-btn" data-tab="workout">
+        Log Workout
+    </button>
+
+    <button class="nav-btn" data-tab="history">
+        History
+    </button>
+
+    <button class="nav-btn" data-tab="progress">
+        Progress
+    </button>
+
+    <button class="nav-btn" data-tab="data">
+        Data
+    </button>
+</nav>
+
+<main>
+
+<!-- ========================================================= -->
+<!-- DASHBOARD -->
+<!-- ========================================================= -->
+
+<section id="dashboard" class="tab active">
+
+    <div class="card">
+
+        <h2>Current Snapshot</h2>
+
+        <div
+            class="grid"
+            id="dashboardMetrics"
+        ></div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>❤️ Cardio Benchmark</h2>
+
+        <p>
+            Your current standardized treadmill benchmark:
+        </p>
+
+        <div class="progress-box">
+
+            <div class="highlight">
+                5.0 kph • 5% incline
+            </div>
+
+            <p>
+                Current observed HR:
+                approximately
+                <strong>134 bpm</strong>
+            </p>
+
+            <p class="muted">
+                Main cardio target: approximately
+                125–140 bpm, RPE 5–6.
+                Use RPE and the talk test alongside HR.
+            </p>
+
+        </div>
+
+        <div id="cardioBenchmarkStatus"></div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>🏋️ Next Workout</h2>
+
+        <div id="nextWorkout"></div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Recent Sessions</h2>
+
+        <div id="recentSessions"></div>
+
+    </div>
+
+</section>
+
+
+<!-- ========================================================= -->
+<!-- WORKOUT -->
+<!-- ========================================================= -->
+
+<section id="workout" class="tab">
+
+    <div class="card">
+
+        <h2>Log Workout</h2>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Date</label>
+                <input
+                    type="date"
+                    id="workoutDate"
+                >
+            </div>
+
+            <div>
+                <label>Session</label>
+                <input
+                    type="text"
+                    id="sessionName"
+                    placeholder="Session 6"
+                >
+            </div>
+
+            <div>
+                <label>Pre-workout HR</label>
+                <input
+                    type="number"
+                    id="preWorkoutHR"
+                    placeholder="88"
+                >
+            </div>
+
+        </div>
+
+
+        <h3>Strength Training</h3>
+
+        <div id="exerciseRows"></div>
+
+
+        <div class="actions">
+
+            <button
+                class="btn"
+                id="addExerciseBtn"
+            >
+                + Add Exercise
+            </button>
+
+            <button
+                class="btn"
+                id="recommendedWorkoutBtn"
+            >
+                Load Recommended Workout
+            </button>
+
+        </div>
+
+
+        <hr>
+
+
+        <h3>Cardio</h3>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Type</label>
+
+                <select id="cardioType">
+
+                    <option>Treadmill</option>
+                    <option>Recumbent Bike</option>
+                    <option>Upright Bike</option>
+                    <option>Stepper</option>
+                    <option>ClimbMill</option>
+
+                </select>
+            </div>
+
+
+            <div>
+                <label>Duration (min)</label>
+
+                <input
+                    type="number"
+                    id="cardioMinutes"
+                    step="0.1"
+                >
+            </div>
+
+
+            <div>
+                <label>Distance (km)</label>
+
+                <input
+                    type="number"
+                    id="cardioDistance"
+                    step="0.01"
+                >
+            </div>
+
+
+            <div>
+                <label>Speed (kph)</label>
+
+                <input
+                    type="number"
+                    id="cardioSpeed"
+                    step="0.1"
+                >
+            </div>
+
+
+            <div>
+                <label>Incline (%)</label>
+
+                <input
+                    type="number"
+                    id="cardioIncline"
+                    step="0.5"
+                >
+            </div>
+
+
+            <div>
+                <label>Average HR</label>
+
+                <input
+                    type="number"
+                    id="cardioAverageHR"
+                >
+            </div>
+
+
+            <div>
+                <label>Peak HR</label>
+
+                <input
+                    type="number"
+                    id="cardioPeakHR"
+                >
+            </div>
+
+
+            <div>
+                <label>Cardio RPE</label>
+
+                <input
+                    type="number"
+                    id="cardioRPE"
+                    min="1"
+                    max="10"
+                    step="0.5"
+                >
+            </div>
+
+
+            <div>
+                <label>Calories</label>
+
+                <input
+                    type="number"
+                    id="cardioCalories"
+                >
+            </div>
+
+
+            <div>
+                <label>1-min HR Recovery</label>
+
+                <input
+                    type="number"
+                    id="hrRecovery"
+                    placeholder="Optional"
+                >
+            </div>
+
+        </div>
+
+
+        <p class="muted">
+            For treadmill progress testing, keep speed and
+            incline constant. That lets us determine whether
+            your HR and RPE improve at the same workload.
+        </p>
+
+
+        <div class="actions">
+
+            <button
+                class="btn-primary"
+                id="saveWorkoutBtn"
+            >
+                Save Workout
+            </button>
+
+            <button
+                class="btn"
+                id="clearWorkoutBtn"
+            >
+                Clear
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ========================================================= -->
+<!-- HISTORY -->
+<!-- ========================================================= -->
+
+<section id="history" class="tab">
+
+    <div class="card">
+
+        <h2>Workout History</h2>
+
+        <div id="historyContent"></div>
+
+    </div>
+
+</section>
+
+
+<!-- ========================================================= -->
+<!-- PROGRESS -->
+<!-- ========================================================= -->
+
+<section id="progress" class="tab">
+
+    <div class="card">
+
+        <h2>Strength Progress</h2>
+
+        <div class="chart-container">
+            <canvas id="strengthChart"></canvas>
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Cardio HR vs Workload</h2>
+
+        <p class="muted">
+            For treadmill sessions, workload index is an
+            approximate comparison using speed and incline.
+            The most meaningful comparison is when speed
+            and incline are identical.
+        </p>
+
+        <div class="chart-container">
+            <canvas id="cardioChart"></canvas>
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Cardio Duration</h2>
+
+        <div class="chart-container">
+            <canvas id="durationChart"></canvas>
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Standard Treadmill Benchmark</h2>
+
+        <div id="benchmarkTable"></div>
+
+    </div>
+
+</section>
+
+
+<!-- ========================================================= -->
+<!-- DATA -->
+<!-- ========================================================= -->
+
+<section id="data" class="tab">
+
+    <div class="card">
+
+        <h2>Data Management</h2>
+
+        <p class="muted">
+            Your data is stored locally in this browser.
+            Export backups regularly.
+        </p>
+
+
+        <div class="actions">
+
+            <button
+                class="btn-primary"
+                id="exportJSONBtn"
+            >
+                Export JSON Backup
+            </button>
+
+
+            <button
+                class="btn"
+                id="exportCSVBtn"
+            >
+                Export CSV
+            </button>
+
+
+            <label class="btn import-label">
+
+                Import JSON
+
+                <input
+                    type="file"
+                    id="importFile"
+                    accept=".json"
+                    hidden
+                >
+
+            </label>
+
+        </div>
+
+
+        <hr>
+
+
+        <button
+            class="btn-danger"
+            id="deleteAllDataBtn"
+        >
+            Delete All Data
+        </button>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Training Rules</h2>
+
+        <ul>
+
+            <li>Main exercises: generally 3 × 8–12.</li>
+
+            <li>Accessories: generally 2 × 10–15.</li>
+
+            <li>Most working sets: RPE 6–8.</li>
+
+            <li>Usually aim around RPE 7.</li>
+
+            <li>Do not intentionally train to failure.</li>
+
+            <li>Increase reps before increasing weight.</li>
+
+            <li>Use the smallest practical weight increase.</li>
+
+            <li>Cardio normally around RPE 5–6.</li>
+
+            <li>
+                Practical HR guide:
+                approximately 125–140 bpm.
+            </li>
+
+        </ul>
+
+    </div>
+
+</section>
+
+</main>
+
+</body>
+</html>
