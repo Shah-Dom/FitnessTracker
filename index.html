@@ -44,6 +44,7 @@
 <nav>
   <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
   <button class="nav-btn" data-tab="workout">Log Workout</button>
+  <button class="nav-btn" data-tab="equipment">Equipment</button>
   <button class="nav-btn" data-tab="history">History</button>
   <button class="nav-btn" data-tab="progress">Progress</button>
   <button class="nav-btn" data-tab="data">Data</button>
@@ -69,6 +70,7 @@
 <section id="workout" class="tab">
 <div class="card">
 <h2>Log Workout</h2>
+<div id="workoutMessage" class="message"></div>
 <div class="form-grid">
 <div><label>Date</label><input type="date" id="workoutDate"></div>
 <div><label>Session</label><input type="text" id="sessionName" placeholder="Session 6"></div>
@@ -76,11 +78,11 @@
 </div>
 <h3>Strength Training</h3>
 <div id="exerciseRows"></div>
-<div class="actions"><button class="btn" id="addExerciseBtn">+ Add Exercise</button><button class="btn" id="loadRecommendedBtn">Load Recommended Workout</button></div>
+<div class="actions"><button class="btn" id="addExerciseBtn">+ Add Exercise</button><button class="btn" id="loadPreviousBtn">Load Previous Session</button><button class="btn" id="loadRecommendedBtn">Load Recommended Workout</button></div>
 <hr>
 <h3>Cardio</h3>
 <div class="form-grid">
-<div><label>Type</label><select id="cardioType"><option>Treadmill</option><option>Recumbent Bike</option><option>Upright Bike</option><option>Stepper</option><option>ClimbMill</option></select></div>
+<div><label>Type</label><select id="cardioType"></select></div>
 <div><label>Duration (min)</label><input type="number" id="cardioMinutes" step="0.1"></div>
 <div><label>Distance (km)</label><input type="number" id="cardioDistance" step="0.01"></div>
 <div><label>Speed (kph)</label><input type="number" id="cardioSpeed" step="0.1"></div>
@@ -96,6 +98,33 @@
 </div>
 </section>
 
+<section id="equipment" class="tab">
+<div class="card">
+  <div class="section-header">
+    <div><h2>Equipment Catalogue</h2><p class="muted">Equipment is loaded dynamically from your existing Supabase <code>equipment</code> table.</p></div>
+    <button class="btn-primary" id="addEquipmentBtn">+ Add Equipment</button>
+  </div>
+  <div id="equipmentMessage" class="message"></div>
+  <div class="filter-bar">
+    <button class="btn equipment-filter active" data-filter="all">All</button>
+    <button class="btn equipment-filter" data-filter="strength">Strength</button>
+    <button class="btn equipment-filter" data-filter="cardio">Cardio</button>
+  </div>
+  <div id="equipmentFormCard" class="equipment-form card-inner" hidden>
+    <h3 id="equipmentFormTitle">Add Equipment</h3>
+    <div class="form-grid">
+      <div><label>Name</label><input id="equipmentName" type="text" placeholder="e.g. Leg Press"></div>
+      <div><label>Type</label><select id="equipmentType"><option value="Strength">Strength</option><option value="Cardio">Cardio</option></select></div>
+      <div><label>Primary muscles</label><input id="equipmentPrimary" type="text"></div>
+      <div><label>Secondary muscles</label><input id="equipmentSecondary" type="text"></div>
+      <div id="equipmentBenefitField"><label>Cardio benefit</label><input id="equipmentBenefit" type="text" placeholder="Describe the main benefit"></div>
+    </div>
+    <div class="actions"><button class="btn-primary" id="saveEquipmentBtn">Save Equipment</button><button class="btn" id="cancelEquipmentBtn">Cancel</button></div>
+  </div>
+  <div id="equipmentContent"></div>
+</div>
+</section>
+
 <section id="history" class="tab"><div class="card"><h2>Workout History</h2><div id="historyContent"></div></div></section>
 <section id="progress" class="tab">
 <div class="card"><h2>Strength Progress</h2><div class="chart-container"><canvas id="strengthChart"></canvas></div></div>
@@ -107,7 +136,7 @@
 <section id="data" class="tab">
 <div class="card">
 <h2>Data Management</h2>
-<p class="muted">Cloud sync is enabled when you are signed in. A local cache is also kept for offline use.</p>
+<p class="muted">Cloud sync is enabled when you are signed in. A local cache is also kept for offline use. Equipment is cached separately so the Log Workout selectors can remain usable offline.</p>
 <div class="actions">
 <button class="btn-primary" id="exportJsonBtn">Export JSON Backup</button>
 <button class="btn" id="exportCsvBtn">Export CSV</button>
