@@ -47,6 +47,9 @@
   <button class="nav-btn" data-tab="equipment">Equipment</button>
   <button class="nav-btn" data-tab="history">History</button>
   <button class="nav-btn" data-tab="progress">Progress</button>
+  <button class="nav-btn" data-tab="weight">Weight</button>
+  <button class="nav-btn" data-tab="profile">Profile</button>
+  <button class="nav-btn" data-tab="ai-coach">AI Coach</button>
   <button class="nav-btn" data-tab="data">Data</button>
 </nav>
 
@@ -63,7 +66,7 @@
   </div>
   <div id="cardioBenchmarkStatus"></div>
 </div>
-<div class="card"><h2>🏋️ Next Workout</h2><div id="nextWorkout"></div></div>
+<div class="card"><h2>🏋️ Next Workout</h2><div id="nextWorkout"></div><div class="actions"><button class="btn-primary" id="dashboardProposeBtn" type="button">🤖 Ask AI Coach for a Workout</button></div><p id="dashboardCoachText" class="muted"></p></div>
 <div class="card"><h2>Recent Sessions</h2><div id="recentSessions"></div></div>
 </section>
 
@@ -76,7 +79,7 @@
 <div><label>Session</label><input type="text" id="sessionName" placeholder="Session 6"></div>
 <div><label>Pre-workout HR</label><input type="number" id="preWorkoutHR" placeholder="88"></div>
 </div>
-<h3>Strength Training</h3>
+<div class="strength-section-header"><h3>Strength Training</h3><span id="exerciseCompletionStatus" class="exercise-completion-status">No exercises added</span></div>
 <div id="exerciseRows"></div>
 <div class="actions"><button class="btn" id="addExerciseBtn">+ Add Exercise</button><button class="btn" id="loadPreviousBtn">Load Previous Session</button><button class="btn" id="loadRecommendedBtn">Load Recommended Workout</button></div>
 <hr>
@@ -133,6 +136,20 @@
 <div class="card"><h2>Standard Treadmill Benchmark</h2><div id="benchmarkTable"></div></div>
 </section>
 
+<section id="weight" class="tab">
+<div class="card"><div class="card-header"><div><h2>Weight</h2><p class="muted">Track your body weight over time.</p></div></div>
+<form id="weightForm" class="form-grid"><div><label for="weightDate">Date</label><input id="weightDate" type="date" required></div><div><label for="weightKg">Weight (kg)</label><input id="weightKg" type="number" min="20" max="500" step="0.1" required></div><div class="span-full"><label for="weightNote">Note</label><input id="weightNote" type="text" maxlength="200"></div><div class="span-full"><button class="btn-primary" type="submit">Add Weight</button></div></form></div>
+<div class="card"><div class="card-header"><h3>Weight Trend</h3><strong id="currentWeightLabel"></strong></div><div class="chart-wrap"><canvas id="weightChart"></canvas></div><div id="weightEntries" class="data-list"></div></div>
+</section>
+<section id="profile" class="tab">
+<div class="card"><div class="card-header"><div><h2>Profile</h2><p class="muted">Basic information used by the AI Coach.</p></div></div>
+<form id="profileForm" class="form-grid"><div><label for="profileName">Name</label><input id="profileName" maxlength="100" required></div><div><label for="profileDob">Date of birth</label><input id="profileDob" type="date"></div><div><label for="profileGender">Gender</label><select id="profileGender"><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></select></div><div><label for="profileHeight">Height (cm)</label><input id="profileHeight" type="number" min="80" max="250" step="0.1"></div><div class="span-full"><label for="profileGoal">Fitness goal</label><textarea id="profileGoal" rows="3" maxlength="500"></textarea></div><div class="span-full"><button class="btn-primary" type="submit">Save Profile</button></div></form></div>
+</section>
+<section id="ai-coach" class="tab">
+<div class="card"><div class="card-header"><div><h2>🤖 AI Coach</h2><p class="muted">Recommendations use your profile, weight, workout history and equipment.</p></div></div>
+<div id="aiCoachMessages"></div><div class="ai-coach-actions"><button id="aiProposeBtn" class="btn-primary" type="button">Propose Next Workout</button><button id="aiAskBtn" class="btn" type="button">Ask Coach</button></div>
+<div id="aiAskBox" hidden><textarea id="aiQuestion" rows="3" maxlength="1000" placeholder="Ask about today's workout or your progress..."></textarea><button id="aiSendBtn" class="btn" type="button">Send</button></div><div id="aiProposal"></div></div>
+</section>
 <section id="data" class="tab">
 <div class="card">
 <h2>Data Management</h2>

@@ -1,5 +1,5 @@
-const LOCAL_KEY="myFitnessTracker_v3_cache";
-const LEGACY_LOCAL_KEYS=["myFitnessTracker_v2_cache"];
+const LOCAL_KEY="myFitnessTracker_v4_cache";
+const LEGACY_LOCAL_KEYS=["myFitnessTracker_v3_cache","myFitnessTracker_v2_cache"];
 
 function emptyLocalData(){return {workouts:[],equipment:[]};}
 
