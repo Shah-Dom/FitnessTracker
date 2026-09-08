@@ -32,7 +32,7 @@
 <header>
   <div>
     <h1>My Fitness Tracker</h1>
-    <p>Strength + cardio + progressive training dashboard</p>
+    <p id="headerSubtitle">Strength + cardio + progressive training dashboard</p>
   </div>
   <div class="account-bar">
     <span id="userEmail"></span>
@@ -55,7 +55,7 @@
 
 <main>
 <section id="dashboard" class="tab active">
-<div class="card"><h2>Current Snapshot</h2><div class="grid" id="dashboardMetrics"></div></div>
+<div class="card"><h2 id="dashboardGreeting">Your Fitness Dashboard</h2><div id="dashboardEncouragement" class="encouragement-strip"></div><div class="snapshot-title muted">A quick look at your recent training.</div><div class="grid" id="dashboardMetrics"></div></div>
 <div class="card">
   <h2>❤️ Cardio Benchmark</h2>
   <p>Your current standardized treadmill benchmark:</p>
@@ -95,9 +95,10 @@
 <div><label>Cardio RPE</label><input type="number" id="cardioRPE" min="1" max="10" step="0.5"></div>
 <div><label>Calories</label><input type="number" id="cardioCalories"></div>
 <div><label>1-min HR Recovery</label><input type="number" id="hrRecovery"></div>
+<div><label>2-min HR Recovery</label><input type="number" id="hrRecovery2"></div>
 </div>
 <p class="muted">For treadmill progress testing, keep speed and incline constant. That lets us determine whether your HR and RPE improve at the same workload.</p>
-<div class="actions"><button class="btn-primary" id="saveWorkoutBtn">Save Workout</button><button class="btn" id="clearWorkoutBtn">Clear</button></div>
+<div class="actions"><button class="btn-primary" id="saveWorkoutBtn">Save Workout</button><button class="btn" id="clearWorkoutBtn">Clear</button><button class="btn" id="getAiReportBtn" hidden>🤖 Ask AI Coach to Report on Last Session</button></div>
 </div>
 </section>
 
@@ -139,16 +140,32 @@
 <section id="weight" class="tab">
 <div class="card"><div class="card-header"><div><h2>Weight</h2><p class="muted">Track your body weight over time.</p></div></div>
 <form id="weightForm" class="form-grid"><div><label for="weightDate">Date</label><input id="weightDate" type="date" required></div><div><label for="weightKg">Weight (kg)</label><input id="weightKg" type="number" min="20" max="500" step="0.1" required></div><div class="span-full"><label for="weightNote">Note</label><input id="weightNote" type="text" maxlength="200"></div><div class="span-full"><button class="btn-primary" type="submit">Add Weight</button></div></form></div>
-<div class="card"><div class="card-header"><h3>Weight Trend</h3><strong id="currentWeightLabel"></strong></div><div class="chart-wrap"><canvas id="weightChart"></canvas></div><div id="weightEntries" class="data-list"></div></div>
+<div class="card"><div class="card-header"><div><h3>Weight Trend</h3><p id="bmiStatus" class="muted"></p></div><strong id="currentWeightLabel"></strong></div><div class="weight-chart-wrap"><div class="bmi-bands"><span class="bmi-red-left">BMI &lt; 18.5</span><span class="bmi-green">18.5–24.9</span><span class="bmi-yellow">25–29.9</span><span class="bmi-red-right">≥ 30</span></div><div class="chart-wrap"><canvas id="weightChart"></canvas></div></div><div id="weightEntries" class="data-list"></div></div>
 </section>
 <section id="profile" class="tab">
 <div class="card"><div class="card-header"><div><h2>Profile</h2><p class="muted">Basic information used by the AI Coach.</p></div></div>
 <form id="profileForm" class="form-grid"><div><label for="profileName">Name</label><input id="profileName" maxlength="100" required></div><div><label for="profileDob">Date of birth</label><input id="profileDob" type="date"></div><div><label for="profileGender">Gender</label><select id="profileGender"><option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option></select></div><div><label for="profileHeight">Height (cm)</label><input id="profileHeight" type="number" min="80" max="250" step="0.1"></div><div class="span-full"><label for="profileGoal">Fitness goal</label><textarea id="profileGoal" rows="3" maxlength="500"></textarea></div><div class="span-full"><button class="btn-primary" type="submit">Save Profile</button></div></form></div>
 </section>
 <section id="ai-coach" class="tab">
-<div class="card"><div class="card-header"><div><h2>🤖 AI Coach</h2><p class="muted">Recommendations use your profile, weight, workout history and equipment.</p></div></div>
-<div id="aiCoachMessages"></div><div class="ai-coach-actions"><button id="aiProposeBtn" class="btn-primary" type="button">Propose Next Workout</button><button id="aiAskBtn" class="btn" type="button">Ask Coach</button></div>
-<div id="aiAskBox" hidden><textarea id="aiQuestion" rows="3" maxlength="1000" placeholder="Ask about today's workout or your progress..."></textarea><button id="aiSendBtn" class="btn" type="button">Send</button></div><div id="aiProposal"></div></div>
+<div class="card"><div class="card-header"><div><div class="coach-heading"><img class="coach-avatar" src="assets/coach-avatar.png" alt="AI Fitness Coach"><div><h2>AI Coach</h2><p id="aiCoachIntro" class="muted">Your coach uses your profile, weight history and recent workouts.</p></div></div></div></div>
+<div id="aiCoachMessages"></div>
+<div class="coach-options">
+  <h3>Workout preferences</h3>
+  <div class="coach-option-grid">
+    <div><label for="coachExercisePreference">Exercise preference</label><select id="coachExercisePreference"><option value="recent" selected>Prioritise machines I used recently</option><option value="avoid_last">Avoid repeating exercises from my last session</option></select></div>
+    <div><label for="coachRoutineMode">Routine style</label><select id="coachRoutineMode"><option value="single" selected>Single Routine</option><option value="rotation">Rotation</option></select></div>
+    <div><label for="coachEnergy">Energy level</label><select id="coachEnergy"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option></select></div>
+    <div><label for="coachSoreness">Soreness</label><select id="coachSoreness"><option value="none" selected>None</option><option value="moderate">Moderate</option><option value="high">High</option></select></div>
+    <div><label for="coachTime">Time available (minutes)</label><input id="coachTime" type="number" min="20" max="180" step="5" value="90"></div>
+    <div class="coach-toggle"><label class="check-row"><input id="coachIncludeCardio" type="checkbox" checked> Include cardio recommendation</label></div>
+    <div class="coach-toggle"><label class="check-row"><input id="coachIncreaseWeight" type="checkbox"> Should I increase weight today?</label></div>
+  </div>
+  <label class="check-row"><input id="includeCustomInstructions" type="checkbox"> Include my custom instructions when asking Coach to propose a workout</label>
+  <textarea id="customCoachInstructions" class="full-width-textarea" rows="4" maxlength="1000" placeholder="Optional: e.g. Keep the workout under 50 minutes; prioritise machines I used recently; avoid repeating an exercise from my last session."></textarea>
+  <p class="muted">Custom instructions are sent to the AI only when the checkbox is selected.</p>
+</div>
+<div class="ai-coach-actions"><button id="aiProposeBtn" class="btn-primary" type="button">Propose Next Workout</button><button id="aiAskBtn" class="btn" type="button">Ask Coach</button></div>
+<div id="aiAskBox" hidden><textarea id="aiQuestion" class="full-width-textarea ask-coach" rows="5" maxlength="1500" placeholder="Ask about today's workout, your progress, exercise choices, or training plan..."></textarea><button id="aiSendBtn" class="btn" type="button">Send</button></div><div id="aiProposal"></div><div id="lastWorkoutReport"></div></div>
 </section>
 <section id="data" class="tab">
 <div class="card">

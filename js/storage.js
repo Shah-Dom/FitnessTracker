@@ -55,7 +55,7 @@ function normalizeCloudData(workouts,exercises,cardio){
     type:c.cardio_type||"",minutes:Number(c.duration_minutes)||0,distance:Number(c.distance_km)||0,
     speed:Number(c.speed_kph)||0,incline:Number(c.incline_percent)||0,avgHR:Number(c.average_hr)||0,
     peakHR:Number(c.peak_hr)||0,rpe:Number(c.rpe)||0,calories:Number(c.calories)||0,
-    recovery:Number(c.hr_recovery_1min)||0
+    recovery:Number(c.hr_recovery_1min)||0,recovery2:Number(c.hr_recovery_2min)||0
   });
   return {workouts:(workouts||[]).map(w=>({
     id:w.id,date:w.workout_date,session:w.session_name||"Workout",preHR:Number(w.pre_workout_hr)||0,
@@ -103,7 +103,7 @@ async function saveWorkoutToCloud(workout,userId){
     const x=await supabaseClient.from("cardio_sessions").insert({
       workout_id:w.id,user_id:userId,cardio_type:c.type,duration_minutes:c.minutes,
       distance_km:c.distance,speed_kph:c.speed,incline_percent:c.incline,average_hr:c.avgHR,
-      peak_hr:c.peakHR,rpe:c.rpe,calories:c.calories,hr_recovery_1min:c.recovery
+      peak_hr:c.peakHR,rpe:c.rpe,calories:c.calories,hr_recovery_1min:c.recovery,hr_recovery_2min:c.recovery2
     });
     if(x.error)throw x.error;
   }

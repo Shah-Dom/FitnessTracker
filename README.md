@@ -1,8 +1,8 @@
-# My Fitness Tracker — Revision 3
+# My Fitness Tracker — Revision 4.4a
 
-Revision 3 builds on Revision 2 and keeps the existing workout database structure. It uses the user's existing Supabase `public.equipment` table as the single source of truth for exercise and cardio selection.
+Revision 4.4 builds on Revision 3 and keeps the existing workout database structure. It uses the user's existing Supabase `public.equipment` table as the single source of truth for exercise and cardio selection.
 
-## Revision 3 changes
+## Revision 4.4 changes
 
 ### 1. Equipment tab
 - New Equipment tab.

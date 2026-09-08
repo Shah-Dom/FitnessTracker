@@ -37,3 +37,6 @@ create policy weight_delete_own on public.weight_entries for delete to authentic
 create or replace function public.set_updated_at() returns trigger language plpgsql as $$ begin new.updated_at=now(); return new; end $$;
 drop trigger if exists profiles_set_updated_at on public.profiles;
 create trigger profiles_set_updated_at before update on public.profiles for each row execute function public.set_updated_at();
+
+-- Rev 4.2: two-minute heart-rate recovery
+alter table public.cardio_sessions add column if not exists hr_recovery_2min numeric;
