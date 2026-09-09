@@ -207,7 +207,172 @@ async function deleteEquipment(id){const e=equipment.find(x=>String(x.id)===Stri
 function renderHistory(){const ws=[...appData.workouts].reverse();$("historyContent").innerHTML=ws.length?`<table><thead><tr><th>Date</th><th>Session</th><th>Strength</th><th>Cardio</th><th></th></tr></thead><tbody>${ws.map((w,ri)=>{const i=appData.workouts.length-1-ri;return `<tr><td>${esc(w.date)}</td><td>${esc(w.session)}</td><td>${(w.exercises||[]).map(e=>`${esc(e.name)}: ${e.weight} kg × ${e.reps} × ${e.sets}, RPE ${e.rpe}`).join("<br>")||"—"}</td><td>${w.cardio?.minutes?`${esc(w.cardio.type)}<br>${w.cardio.minutes} min<br>HR: ${w.cardio.avgHR||"—"}<br>RPE: ${w.cardio.rpe||"—"}`:"—"}</td><td><button class="btn-danger delete-one" data-index="${i}">Delete</button></td></tr>`;}).join("")}</tbody></table>`:"<p>No workouts recorded.</p>";document.querySelectorAll(".delete-one").forEach(b=>b.onclick=()=>deleteWorkout(Number(b.dataset.index)));}
 async function deleteWorkout(i){if(!confirm("Delete this workout from the cloud?"))return;const local=appData.workouts[i];try{if(!String(local.id).startsWith("local-")){const r=await supabaseClient.from("workouts").delete().eq("id",local.id);if(r.error)throw r.error;}appData.workouts.splice(i,1);window.appData=appData;setLocalData(appData);renderHistory();renderDashboard();setStatus("Synced",true);}catch(e){alert("Could not delete the workout.");console.error(e);}}
 
-function renderCharts(){Object.values(charts).forEach(c=>c?.destroy());const ws=[...appData.workouts].sort((a,b)=>a.date.localeCompare(b.date));const names=[...new Set(ws.flatMap(w=>(w.exercises||[]).map(e=>e.name)).filter(Boolean))];charts.strength=new Chart($("strengthChart"),{type:"line",data:{labels:ws.map(w=>w.date),datasets:names.map(n=>({label:n,data:ws.map(w=>{const e=(w.exercises||[]).find(e=>normalizeKey(e.name)===normalizeKey(n));return e&&e.weight>0?e.weight:null;})}))},options:{responsive:true,maintainAspectRatio:false}});const cw=ws.filter(w=>w.cardio?.minutes>0&&w.cardio?.avgHR>0);charts.cardio=new Chart($("cardioChart"),{type:"scatter",data:{datasets:[{label:"Cardio HR",data:cw.map(w=>{const c=w.cardio;return{x:normalizeKey(c.type)==="treadmill"?c.speed*(1+c.incline/100):(c.speed||c.minutes),y:c.avgHR};})}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:"Workload index"}},y:{title:{display:true,text:"Average HR (bpm)"}}}}});charts.duration=new Chart($("durationChart"),{type:"line",data:{labels:cw.map(w=>w.date),datasets:[{label:"Cardio minutes",data:cw.map(w=>w.cardio.minutes)}]},options:{responsive:true,maintainAspectRatio:false}});if(!names.length)$("strengthChart").parentElement.innerHTML='<p class="muted">No strength weights have been recorded yet.</p><canvas id="strengthChart"></canvas>';}
+/* ============================================================
+   Charts — "Gradient Area" style: smooth curves, soft gradient
+   fills, glowing points, minimal horizontal-only gridlines,
+   rounded dark tooltips. Shared across every Chart.js instance.
+   Strength progress is split into two charts (upper/lower body).
+============================================================ */
+const CHART_PALETTE = ["#4DA3FF", "#FF6A3D", "#B98BFF", "#33D17B", "#FFC24D", "#FF5D5D", "#4DE0C7", "#F27FB0"];
+let chartDefaultsConfigured = false;
+function configureChartDefaults() {
+  if (chartDefaultsConfigured || typeof Chart === "undefined") return;
+  chartDefaultsConfigured = true;
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = "#949BA8";
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.boxWidth = 8;
+  Chart.defaults.plugins.legend.labels.padding = 16;
+  Chart.defaults.plugins.tooltip.backgroundColor = "#1F232B";
+  Chart.defaults.plugins.tooltip.titleColor = "#F3F4F6";
+  Chart.defaults.plugins.tooltip.bodyColor = "#D5D8DE";
+  Chart.defaults.plugins.tooltip.borderColor = "#2A2F38";
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 10;
+  Chart.defaults.plugins.tooltip.boxPadding = 4;
+  Chart.defaults.plugins.tooltip.displayColors = true;
+  Chart.defaults.elements.point.hitRadius = 8;
+}
+function hexToRgba(hex, alpha) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function gradientFill(colorHex) {
+  return (context) => {
+    const { ctx, chartArea } = context.chart;
+    if (!chartArea) return hexToRgba(colorHex, 0.15);
+    const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    g.addColorStop(0, hexToRgba(colorHex, 0.32));
+    g.addColorStop(1, hexToRgba(colorHex, 0));
+    return g;
+  };
+}
+const GRID_MINIMAL_Y = { color: "rgba(255,255,255,0.14)", drawTicks: false, lineWidth: 1 };
+const GRID_HIDDEN_X = { display: false };
+function areaLineDataset(label, data, colorHex, i = 0) {
+  const color = colorHex || CHART_PALETTE[i % CHART_PALETTE.length];
+  return {
+    label,
+    data,
+    borderColor: color,
+    backgroundColor: gradientFill(color),
+    fill: true,
+    tension: 0.35,
+    borderWidth: 2.5,
+    spanGaps: true,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    pointHoverBackgroundColor: color,
+    pointHoverBorderColor: "#0F1115",
+    pointHoverBorderWidth: 2,
+  };
+}
+
+// Rough upper/lower body classifier from the equipment catalogue's
+// primary/secondary muscles (falls back to the exercise name itself
+// for anything logged that isn't in the current equipment list).
+const LOWER_BODY_KEYWORDS = ["quad", "hamstring", "glute", "calf", "calves", "adductor", "abductor", "soleus", "gastrocnemius", "hip"];
+function getBodyRegion(exerciseName) {
+  const eq = equipment.find((e) => normalizeKey(e.name) === normalizeKey(exerciseName));
+  const text = normalizeText(`${eq?.name || exerciseName} ${eq?.primary_muscles || ""} ${eq?.secondary_muscles || ""}`);
+  return LOWER_BODY_KEYWORDS.some((k) => text.includes(k)) ? "lower" : "upper";
+}
+
+function buildStrengthChart(canvasId, ws, exerciseNames) {
+  const el = $(canvasId);
+  if (!exerciseNames.length) {
+    el.parentElement.innerHTML = `<p class="muted">No data for this group yet.</p><canvas id="${canvasId}"></canvas>`;
+    return null;
+  }
+  return new Chart(el, {
+    type: "line",
+    data: {
+      labels: ws.map((w) => w.date),
+      datasets: exerciseNames.map((n, i) =>
+        areaLineDataset(
+          n,
+          ws.map((w) => {
+            const e = (w.exercises || []).find((e) => normalizeKey(e.name) === normalizeKey(n));
+            return e && e.weight > 0 ? e.weight : null;
+          }),
+          null,
+          i
+        )
+      ),
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "nearest", intersect: false },
+      scales: {
+        x: { grid: GRID_HIDDEN_X, ticks: { maxRotation: 0, autoSkip: true } },
+        y: { grid: GRID_MINIMAL_Y, border: { display: false }, title: { display: true, text: "kg" } },
+      },
+    },
+  });
+}
+
+function renderCharts() {
+  configureChartDefaults();
+  Object.values(charts).forEach((c) => c?.destroy());
+  const ws = [...appData.workouts].sort((a, b) => a.date.localeCompare(b.date));
+  const names = [...new Set(ws.flatMap((w) => (w.exercises || []).map((e) => e.name)).filter(Boolean))];
+  const upperNames = names.filter((n) => getBodyRegion(n) === "upper");
+  const lowerNames = names.filter((n) => getBodyRegion(n) === "lower");
+
+  charts.strengthUpper = buildStrengthChart("strengthChartUpper", ws, upperNames);
+  charts.strengthLower = buildStrengthChart("strengthChartLower", ws, lowerNames);
+
+  const cw = ws.filter((w) => w.cardio?.minutes > 0 && w.cardio?.avgHR > 0);
+  charts.cardio = new Chart($("cardioChart"), {
+    type: "scatter",
+    data: {
+      datasets: [
+        {
+          label: "Cardio HR",
+          data: cw.map((w) => {
+            const c = w.cardio;
+            return { x: normalizeKey(c.type) === "treadmill" ? c.speed * (1 + c.incline / 100) : c.speed || c.minutes, y: c.avgHR };
+          }),
+          backgroundColor: hexToRgba(CHART_PALETTE[0], 0.85),
+          borderColor: "#0F1115",
+          borderWidth: 1.5,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: CHART_PALETTE[0],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { grid: GRID_HIDDEN_X, border: { display: false }, title: { display: true, text: "Workload index" } },
+        y: { grid: GRID_MINIMAL_Y, border: { display: false }, title: { display: true, text: "Average HR (bpm)" } },
+      },
+    },
+  });
+
+  charts.duration = new Chart($("durationChart"), {
+    type: "line",
+    data: { labels: cw.map((w) => w.date), datasets: [areaLineDataset("Cardio minutes", cw.map((w) => w.cardio.minutes), CHART_PALETTE[3])] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "nearest", intersect: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: GRID_HIDDEN_X, ticks: { maxRotation: 0, autoSkip: true } },
+        y: { grid: GRID_MINIMAL_Y, border: { display: false }, title: { display: true, text: "minutes" } },
+      },
+    },
+  });
+}
 function renderBenchmarkTable(){const s=appData.workouts.filter(w=>{const c=w.cardio||{};return normalizeKey(c.type)==="treadmill"&&Math.abs(c.speed-5)<.11&&Math.abs(c.incline-5)<.6&&c.avgHR>0;});$("benchmarkTable").innerHTML=s.length?`<table><thead><tr><th>Date</th><th>Duration</th><th>Avg HR</th><th>Peak HR</th><th>RPE</th></tr></thead><tbody>${s.map(w=>`<tr><td>${esc(w.date)}</td><td>${w.cardio.minutes} min</td><td>${w.cardio.avgHR}</td><td>${w.cardio.peakHR||"—"}</td><td>${w.cardio.rpe||"—"}</td></tr>`).join("")}</tbody></table>`:"<p>No standardized benchmark sessions yet.</p>";}
 
 function exportCSV(){const rows=[["date","session","exercise","weight_kg","sets","reps","rpe","cardio_type","cardio_minutes","distance_km","speed_kph","incline","avg_hr","peak_hr","cardio_rpe","hr_recovery_1min","hr_recovery_2min"]];appData.workouts.forEach(w=>(w.exercises||[]).forEach(e=>rows.push([w.date,w.session,e.name,e.weight,e.sets,e.reps,e.rpe,w.cardio?.type||"",w.cardio?.minutes||0,w.cardio?.distance||0,w.cardio?.speed||0,w.cardio?.incline||0,w.cardio?.avgHR||0,w.cardio?.peakHR||0,w.cardio?.rpe||0,w.cardio?.recovery||0,w.cardio?.recovery2||0])));downloadBlob(new Blob([rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n")],{type:"text/csv"}),"fitness-data.csv");}
