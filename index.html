@@ -9,9 +9,50 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="stylesheet" href="css/style.css">
+<style>
+/* My Fitness launch splash: separate from the Android/browser native launch screen. */
+#full-splash {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .25s ease, visibility .25s ease;
+  overflow: hidden;
+}
+#full-splash img {
+  width: 100vw;
+  height: 100dvh;
+  object-fit: contain;
+  display: block;
+}
+#full-splash.splash-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+</style>
 <title>My Fitness Tracker</title>
 </head>
 <body>
+<div id="full-splash" aria-hidden="true">
+  <img src="icons/icon-512.png" alt="My Fitness" width="512" height="512" fetchpriority="high">
+</div>
+<script>
+window.hideMyFitnessSplash = function () {
+  const splash = document.getElementById("full-splash");
+  if (!splash) return;
+  splash.classList.add("splash-hidden");
+  window.setTimeout(() => splash.remove(), 300);
+};
+</script>
 <div id="authScreen" class="auth-screen">
   <div class="auth-card">
     <h1>My Fitness Tracker</h1>
