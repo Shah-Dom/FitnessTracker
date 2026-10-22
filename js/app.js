@@ -89,10 +89,6 @@ async function init(){
   $("loadRecommendedBtn").onclick=loadRecommendedWorkout;
   $("saveWorkoutBtn").onclick=saveWorkout;
   $("clearWorkoutBtn").onclick=clearWorkoutForm;
-  $("connectHRBtn")?.addEventListener("click",()=>window.hrMonitor?.connected?window.hrMonitor.disconnect():window.hrMonitor?.connect());
-  $("recordStartingHRBtn")?.addEventListener("click",()=>window.hrMonitor?.startStartingHR());
-  $("startCardioBtn")?.addEventListener("click",()=>window.hrMonitor?.startCardio());
-  $("finishCardioBtn")?.addEventListener("click",()=>window.hrMonitor?.finishCardio());
   $("exportJsonBtn").onclick=()=>downloadBlob(new Blob([JSON.stringify(appData,null,2)],{type:"application/json"}),"fitness-backup.json");
   $("exportCsvBtn").onclick=exportCSV;
   $("importFile").onchange=importJSON;
@@ -107,7 +103,7 @@ async function init(){
   document.querySelectorAll(".equipment-filter").forEach(b=>b.onclick=()=>{equipmentFilter=b.dataset.filter;document.querySelectorAll(".equipment-filter").forEach(x=>x.classList.toggle("active",x===b));renderEquipment();});
   window.addEventListener("online",()=>syncFromCloud().catch(()=>setStatus("Offline cache")));
   window.addEventListener("offline",()=>setStatus("Offline cache"));
-  supabaseClient.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){currentUser=session.user;await enterApp();window.dispatchEvent(new CustomEvent("myfitness:auth"));}else{currentUser=null;window.hrMonitor?.reset?.();$("appShell").hidden=true;$("authScreen").hidden=false;}});
+  supabaseClient.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){currentUser=session.user;await enterApp();window.dispatchEvent(new CustomEvent("myfitness:auth"));}else{currentUser=null;$("appShell").hidden=true;$("authScreen").hidden=false;}});
   try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){currentUser=data.session.user;await enterApp();}else{$("authScreen").hidden=false;window.hideMyFitnessSplash?.();}}catch(e){console.error(e);showMessage("authMessage",e.message||"Could not initialize the app.","error");window.hideMyFitnessSplash?.();}
 }
 
@@ -132,11 +128,7 @@ async function enterApp(){
     }else {appData=cloud;window.appData=appData;}
   }
   try{equipment=await loadEquipmentCloud();appData.equipment=equipment;setLocalData(appData);}catch(e){console.error("Equipment load failed",e);equipment=localBeforeCloud.equipment||[];appData.equipment=equipment;if(equipment.length)showMessage("equipmentMessage","Using cached equipment. Supabase equipment could not be loaded.","error");}
-  if(!restoreWorkoutDraft()){clearWorkoutForm();}
-  if(navigator.onLine) uploadPendingLocalWorkouts().catch(e=>console.warn("Pending upload failed",e));
-  window.hrMonitor?.setUser?.(currentUser.id);
-  window.hrMonitor?.restore?.();
-  renderDashboard();window.hideMyFitnessSplash?.();
+  if(!restoreWorkoutDraft()){clearWorkoutForm();}renderDashboard();window.hideMyFitnessSplash?.();
 }
 
 function showTab(id){
@@ -159,16 +151,21 @@ function addExerciseRow(v={name:"",weight:"",sets:"",reps:"",rpe:"",completed:fa
   <div><label>Reps</label><input class="exercise-reps" type="number" min="1" value="${esc(v.reps)}"></div>
   <div><label>RPE</label><input class="exercise-rpe" type="number" min="1" max="10" step="0.5" value="${esc(v.rpe)}"></div></div></div>
   <div class="exercise-actions"><button class="btn exercise-complete" type="button">${v.completed?"✓ Completed":"Mark Complete"}</button><button class="btn btn-danger-outline remove-exercise" type="button">Delete</button></div>`;
-  row.querySelector(".exercise-complete").onclick=()=>{toggleExerciseComplete(row);saveWorkoutDraft();};
-  row.querySelector(".remove-exercise").onclick=()=>{if(confirm("Delete this exercise from today's workout?")){row.remove();updateExerciseRowNumbers();saveWorkoutDraft();}};
   row.querySelector(".exercise-name").addEventListener("change",event=>{
-    const last=getLastExercise(event.target.value);
-    row.querySelector(".exercise-weight").value=last?.weight??"";
-    row.querySelector(".exercise-sets").value=last?.sets??"";
-    row.querySelector(".exercise-reps").value=last?.reps??"";
-    row.querySelector(".exercise-rpe").value=last?.rpe??"";
+    const selectedName=event.target.value;
+    if(!selectedName)return;
+    const last=getLastExercise(selectedName);
+    const fields={
+      ".exercise-weight":last?.weight??"",
+      ".exercise-sets":last?.sets??"",
+      ".exercise-reps":last?.reps??"",
+      ".exercise-rpe":last?.rpe??""
+    };
+    Object.entries(fields).forEach(([selector,value])=>{row.querySelector(selector).value=value;});
     saveWorkoutDraft();
   });
+  row.querySelector(".exercise-complete").onclick=()=>{toggleExerciseComplete(row);saveWorkoutDraft();};
+  row.querySelector(".remove-exercise").onclick=()=>{if(confirm("Delete this exercise from today's workout?")){row.remove();updateExerciseRowNumbers();saveWorkoutDraft();}};
   $("exerciseRows").appendChild(row);updateExerciseRowNumbers();
 }
 function toggleExerciseComplete(row){const done=!row.classList.contains("exercise-completed");row.classList.toggle("exercise-completed",done);row.querySelector(".exercise-complete").textContent=done?"✓ Completed":"Mark Complete";updateExerciseCompletionSummary();}
@@ -192,57 +189,17 @@ function loadRecommendedWorkout(){$("workoutDate").value=localDate();$("exercise
 function getLastWorkout(){return [...appData.workouts].sort((a,b)=>a.date.localeCompare(b.date)).at(-1)||null;}
 function loadPreviousSession(){const last=getLastWorkout();if(!last){alert("No previous workout is available.");return;}$("workoutDate").value=localDate();$("exerciseRows").innerHTML="";(last.exercises||[]).forEach(e=>addExerciseRow(e));const c=last.cardio||{};populateCardioSelect(c.type||"");$("cardioType").value=c.type||"";$("cardioMinutes").value=c.minutes||"";$("cardioDistance").value=c.distance||"";$("cardioSpeed").value=c.speed||"";$("cardioIncline").value=c.incline||"";$("cardioAverageHR").value=c.avgHR||"";$("cardioPeakHR").value=c.peakHR||"";$("cardioRPE").value=c.rpe||"";$("cardioCalories").value=c.calories||"";$("hrRecovery").value=c.recovery||"";$("hrRecovery2").value=c.recovery2||"";$("preWorkoutHR").value="";$("sessionName").value="Session "+(appData.workouts.length+1);saveWorkoutDraft();showMessage("workoutMessage","Previous session loaded. Pre-workout HR was cleared so you can enter today's reading.","success");window.scrollTo({top:0,behavior:"smooth"});}
 function clearWorkoutForm(){
-  window.hrMonitor?.clear?.();
   clearWorkoutDraft();
   $("exerciseRows").innerHTML="";getStrengthEquipment().slice(0,6).forEach(eq=>addExerciseRow({name:eq.name,weight:"",sets:3,reps:12,rpe:7}));$("sessionName").value="Session "+(appData.workouts.length+1);$("preWorkoutHR").value="";populateCardioSelect("");["cardioMinutes","cardioDistance","cardioSpeed","cardioIncline","cardioAverageHR","cardioPeakHR","cardioRPE","cardioCalories","hrRecovery","hrRecovery2"].forEach(id=>$(id).value="");showMessage("workoutMessage","");}
 
 async function saveWorkout(){
   if(!currentUser){alert("Please sign in first.");return;}
-  const hr=window.hrMonitor;
-  if(hr?.isSessionActive?.() && !hr.isReadyToSave?.()){
-    showMessage("workoutMessage","Finish the 2-minute HR recovery before saving this cardio session.","error");
-    return;
-  }
-  const exercises=collectExercises();
-  const hrCardio=hr?.getSessionData?.()||null;
-  const cardio={
-    type:$("cardioType").value,minutes:num($("cardioMinutes").value),distance:num($("cardioDistance").value),
-    speed:num($("cardioSpeed").value),incline:num($("cardioIncline").value),avgHR:num($("cardioAverageHR").value),
-    peakHR:num($("cardioPeakHR").value),rpe:num($("cardioRPE").value),calories:num($("cardioCalories").value),
-    recovery:num($("hrRecovery").value),recovery2:num($("hrRecovery2").value),
-    startHR:hrCardio?.startHR||0,endHR:hrCardio?.endHR||0,
-    recovery1HR:hrCardio?.recovery1HR||0,recovery2HR:hrCardio?.recovery2HR||0,
-    hrSamples:hrCardio?.graphSamples||[]
-  };
-  const workout={id:"local-"+Date.now(),date:$("workoutDate").value,session:$("sessionName").value||"Workout "+(appData.workouts.length+1),preHR:num($("preWorkoutHR").value),exercises,cardio};
-  appData.workouts.push(workout);window.appData=appData;setLocalData(appData);
-  try{
-    const cloudWorkout=await saveWorkoutToCloud(workout,currentUser.id);
-    if(cloudWorkout?.id)workout.id=cloudWorkout.id;
-    setLocalData(appData);
-    await syncFromCloud();
-    alert("Workout saved and synced.");
-    hr?.clear?.();
-  }catch(e){
-    setStatus("Saved offline");console.error(e);
-    alert("✓ Workout saved locally. ⚠ Upload pending — it will remain on this device until it can be synced.");
-  }
+  const exercises=collectExercises();const cardio={type:$("cardioType").value,minutes:num($("cardioMinutes").value),distance:num($("cardioDistance").value),speed:num($("cardioSpeed").value),incline:num($("cardioIncline").value),avgHR:num($("cardioAverageHR").value),peakHR:num($("cardioPeakHR").value),rpe:num($("cardioRPE").value),calories:num($("cardioCalories").value),recovery:num($("hrRecovery").value),recovery2:num($("hrRecovery2").value)};
+  const workout={id:"local-"+Date.now(),date:$("workoutDate").value,session:$("sessionName").value||"Workout "+(appData.workouts.length+1),preHR:num($("preWorkoutHR").value),exercises,cardio};appData.workouts.push(workout);window.appData=appData;setLocalData(appData);
+  try{await saveWorkoutToCloud(workout,currentUser.id);await syncFromCloud();alert("Workout saved and synced.");}catch(e){setStatus("Saved offline");console.error(e);alert("Workout saved locally. Cloud sync will be retried when you are online.");}
   clearWorkoutDraft();clearWorkoutForm();renderDashboard();if($("getAiReportBtn")){ $("getAiReportBtn").hidden=false; }showTab("workout");
 }
-async function uploadPendingLocalWorkouts(){
-  if(!currentUser||!navigator.onLine)return;
-  const pending=appData.workouts.filter(w=>String(w.id||"").startsWith("local-"));
-  for(const workout of pending){
-    try{
-      const cloudWorkout=await saveWorkoutToCloud(workout,currentUser.id);
-      if(cloudWorkout?.id)workout.id=cloudWorkout.id;
-    }catch(e){
-      console.warn("Pending workout upload failed",e);
-    }
-  }
-  setLocalData(appData);
-}
-async function syncFromCloud(){if(!currentUser||!navigator.onLine)return;setStatus("Syncing…");try{await uploadPendingLocalWorkouts();const cloud=await loadCloudData();appData={...appData,...cloud};window.appData=appData;try{equipment=await loadEquipmentCloud();appData.equipment=equipment;}catch(e){console.error("Equipment sync failed",e);}setLocalData(appData);setStatus("Synced",true);renderDashboard();}catch(e){setStatus("Offline cache");throw e;}}
+async function syncFromCloud(){if(!currentUser||!navigator.onLine)return;setStatus("Syncing…");try{const cloud=await loadCloudData();appData={...appData,...cloud};window.appData=appData;try{equipment=await loadEquipmentCloud();appData.equipment=equipment;}catch(e){console.error("Equipment sync failed",e);}setLocalData(appData);setStatus("Synced",true);renderDashboard();}catch(e){setStatus("Offline cache");throw e;}}
 
 function daysSince(date){if(!date)return null;const a=new Date(date+'T00:00:00'),b=new Date(localDate()+'T00:00:00');return Math.max(0,Math.round((b-a)/86400000));}
 function weekKey(date){const d=new Date(date+"T00:00:00");const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d.toISOString().slice(0,10);}
@@ -470,7 +427,7 @@ function drawChart(rows,heightCm){const c=$("weightChart");if(!c)return;const x=
 
 async function context(){const s=sbc(),u=await user(),p=await profile();let weights=[],workouts=appData.workouts||[],equipment=appData.equipment||[];if(s&&u){const w=await s.from("weight_entries").select("recorded_at,weight_kg").eq("user_id",u.id).order("recorded_at",{ascending:false}).limit(30);weights=w.data||[];const q=await s.from("workouts").select("*").eq("user_id",u.id).order("workout_date",{ascending:false}).limit(12);if(q.data?.length)workouts=q.data}return {profile:p?{name:p.name,date_of_birth:p.date_of_birth,gender:p.gender,height_cm:p.height_cm,goal:p.goal}:null,weights,workouts,equipment}}
 async function coach(body){const s=sbc();if(!s)throw Error("Supabase is not configured.");const q=await s.auth.getSession(),t=q.data.session?.access_token;if(!t)throw Error("Please sign in.");const r=await fetch(`${window.SUPABASE_URL}/functions/v1/generate-workout`,{method:"POST",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch{}if(!r.ok)throw Error(j.error||`AI Coach request failed (${r.status}).`);return j}
-function render(p){const e=$("aiProposal"),cardio=p.cardio||{};e.innerHTML=`<div class="ai-proposal-box"><h3>${esc(p.title||"Recommended Workout")}</h3><p>${esc(p.summary||"")}</p>${(p.exercises||[]).map((x,i)=>`<div class="ai-exercise"><strong>${i+1}. ${esc(x.exercise_name)}</strong> — ${x.sets} × ${x.reps_min}-${x.reps_max} @ ${x.weight_kg} kg, RPE ${x.target_rpe}<br><small>${esc(x.reason||"")}</small></div>`).join("")}<div class="ai-coach-note"><strong>Cardio:</strong> ${cardio.included?`${esc(cardio.type||"Cardio")} for about ${cardio.minutes||0} min — ${esc(cardio.intensity||"")}`:"No cardio recommended today."}${cardio.reason?`<br><small>${esc(cardio.reason)}</small>`:""}</div>${p.weight_decision?`<div class="ai-coach-note"><strong>Weight decision:</strong> ${esc(p.weight_decision)}</div>`:""}<button id="useAiWorkoutBtn" class="btn-primary">Use This Workout</button></div>`;$("useAiWorkoutBtn").onclick=()=>{document.querySelector('[data-tab="workout"]')?.click();$("workoutDate").value=localDate();$("exerciseRows").innerHTML="";(p.exercises||[]).forEach(x=>addExerciseRow({name:x.exercise_name,weight:x.weight_kg,sets:x.sets,reps:x.reps_min,rpe:x.target_rpe}));$("sessionName")&&($("sessionName").value=p.title||"AI Recommended Workout");saveWorkoutDraft()}}
+function render(p){const e=$("aiProposal"),cardio=p.cardio||{};e.innerHTML=`<div class="ai-proposal-box"><h3>${esc(p.title||"Recommended Workout")}</h3><p>${esc(p.summary||"")}</p>${(p.exercises||[]).map((x,i)=>`<div class="ai-exercise"><strong>${i+1}. ${esc(x.exercise_name)}</strong> — ${x.sets} × ${x.reps_min}-${x.reps_max} @ ${x.weight_kg} kg, RPE ${x.target_rpe}<br><small>${esc(x.reason||"")}</small></div>`).join("")}<div class="ai-coach-note"><strong>Cardio:</strong> ${cardio.included?`${esc(cardio.type||"Cardio")} for about ${cardio.minutes||0} min — ${esc(cardio.intensity||"")}`:"No cardio recommended today."}${cardio.reason?`<br><small>${esc(cardio.reason)}</small>`:""}</div>${p.weight_decision?`<div class="ai-coach-note"><strong>Weight decision:</strong> ${esc(p.weight_decision)}</div>`:""}<button id="useAiWorkoutBtn" class="btn-primary">Use This Workout</button></div>`;$("useAiWorkoutBtn").onclick=()=>{document.querySelector('[data-tab="workout"]')?.click();$("workoutDate").value=localDate();$("exerciseRows").innerHTML="";(p.exercises||[]).forEach(x=>addExerciseRow({name:x.exercise_name,weight:x.weight_kg,sets:x.sets,reps:x.reps_min,rpe:x.target_rpe}));$("sessionName")&&($("sessionName").value=p.title||"AI Recommended Workout")}}
 
 function coachPreferences(){return {exercise_preference:$("coachExercisePreference")?.value||"recent",routine_mode:$("coachRoutineMode")?.value||"single",energy_level:$("coachEnergy")?.value||"normal",soreness:$("coachSoreness")?.value||"none",time_minutes:Math.max(20,Math.min(180,num($("coachTime")?.value)||90)),include_cardio:$("coachIncludeCardio")?.checked!==false,ask_increase_weight:!!$("coachIncreaseWeight")?.checked};}
 function customInstructionPayload(){const include=!!$("includeCustomInstructions")?.checked;const text=$("customCoachInstructions")?.value.trim()||"";if(include&&text)localStorage.setItem("myFitness_coach_instructions_"+(currentUser?.id||""),text);return {include_custom_instructions:include&&!!text,custom_instructions:include?text:""};}
@@ -479,7 +436,7 @@ async function propose(){try{const r=await coach({action:"propose",...coachPrefe
 async function ask(){const q=$("aiQuestion").value.trim();if(!q)return;try{const r=await coach({action:"ask",question:q,...coachPreferences()});$("aiCoachMessages").insertAdjacentHTML("beforeend",`<div class="ai-message coach"><strong>Coach:</strong> ${esc(r.answer||"")}</div>`);$("aiQuestion").value="";}catch(e){alert(e.message);}}
 async function reportLastWorkout(){try{const r=await coach({action:"report_last"});$("lastWorkoutReport").innerHTML=`<div class="ai-report-box"><h3>🤖 Your AI Coach Session Report</h3><p><strong>Summary:</strong> ${esc(r.report.summary||"")}</p><p><strong>Compared with previous sessions:</strong> ${esc(r.report.comparison||"")}</p><p><strong>Looking ahead:</strong> ${esc(r.report.future||"")}</p><p class="encouragement-text">💪 ${esc(r.report.encouragement||"")}</p></div>`;showTab("workout");}catch(e){alert(e.message);}}
 
-window.loadProfile=loadProfile;window.loadWeights=loadWeights;window.saveWeight=saveWeight;window.proposeWorkout=propose;window.askCoach=ask;window.reportLastWorkout=reportLastWorkout;window.saveWorkoutDraft=saveWorkoutDraft;
+window.loadProfile=loadProfile;window.loadWeights=loadWeights;window.saveWeight=saveWeight;window.proposeWorkout=propose;window.askCoach=ask;window.reportLastWorkout=reportLastWorkout;
 
 function init(){if($r("profileForm"))$r("profileForm").onsubmit=saveProfile;if($r("weightForm")){$r("weightDate").value=new Date().toISOString().slice(0,10);$r("weightForm").onsubmit=saveWeight}$r("aiProposeBtn")?.addEventListener("click",propose);$r("dashboardProposeBtn")?.addEventListener("click",propose);$r("aiAskBtn")?.addEventListener("click",()=>{$r("aiAskBox").hidden=!$r("aiAskBox").hidden});$r("aiSendBtn")?.addEventListener("click",ask);$r("getAiReportBtn")?.addEventListener("click",reportLastWorkout);loadProfile();loadWeights();loadCustomInstructions();attachWorkoutDraftListeners()}
 document.readyState==="loading"?document.addEventListener("DOMContentLoaded",init):init();

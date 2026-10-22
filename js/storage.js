@@ -55,10 +55,7 @@ function normalizeCloudData(workouts,exercises,cardio){
     type:c.cardio_type||"",minutes:Number(c.duration_minutes)||0,distance:Number(c.distance_km)||0,
     speed:Number(c.speed_kph)||0,incline:Number(c.incline_percent)||0,avgHR:Number(c.average_hr)||0,
     peakHR:Number(c.peak_hr)||0,rpe:Number(c.rpe)||0,calories:Number(c.calories)||0,
-    recovery:Number(c.hr_recovery_1min)||0,recovery2:Number(c.hr_recovery_2min)||0,
-    startHR:Number(c.cardio_start_hr)||0,endHR:Number(c.cardio_end_hr)||0,
-    recovery1HR:Number(c.hr_recovery_1hr)||0,recovery2HR:Number(c.hr_recovery_2hr)||0,
-    hrSamples:Array.isArray(c.hr_samples)?c.hr_samples:[]
+    recovery:Number(c.hr_recovery_1min)||0,recovery2:Number(c.hr_recovery_2min)||0
   });
   return {workouts:(workouts||[]).map(w=>({
     id:w.id,date:w.workout_date,session:w.session_name||"Workout",preHR:Number(w.pre_workout_hr)||0,
@@ -79,11 +76,8 @@ async function loadCloudData(){
     const c=await supabaseClient.from("cardio_sessions").select("*").in("workout_id",ids);
     if(c.error)throw c.error; ca=c.data||[];
   }
-  const cloudData=normalizeCloudData(w||[],ex,ca);
+  const data=normalizeCloudData(w||[],ex,ca);
   const current=getLocalData();
-  const cloudIds=new Set(cloudData.workouts.map(x=>String(x.id)));
-  const pendingLocal=(current.workouts||[]).filter(x=>String(x.id||"").startsWith("local-") && !cloudIds.has(String(x.id)));
-  const data={workouts:[...cloudData.workouts,...pendingLocal]};
   setLocalData({...data,equipment:current.equipment});
   return data;
 }
@@ -105,18 +99,14 @@ async function saveWorkoutToCloud(workout,userId){
     const x=await supabaseClient.from("exercise_sets").insert(rows);if(x.error)throw x.error;
   }
   const c=workout.cardio||{};
-  if(c.type&&(c.minutes||c.avgHR||c.distance||c.speed||c.incline||c.peakHR||c.rpe||c.calories||c.recovery||c.recovery2||c.startHR||c.endHR||(c.hrSamples||[]).length)){
+  if(c.type&&(c.minutes||c.avgHR||c.distance||c.speed||c.incline||c.peakHR||c.rpe||c.calories||c.recovery)){
     const x=await supabaseClient.from("cardio_sessions").insert({
       workout_id:w.id,user_id:userId,cardio_type:c.type,duration_minutes:c.minutes,
       distance_km:c.distance,speed_kph:c.speed,incline_percent:c.incline,average_hr:c.avgHR,
-      peak_hr:c.peakHR,rpe:c.rpe,calories:c.calories,hr_recovery_1min:c.recovery,hr_recovery_2min:c.recovery2,
-      cardio_start_hr:c.startHR||null,cardio_end_hr:c.endHR||null,
-      hr_recovery_1hr:c.recovery1HR||null,hr_recovery_2hr:c.recovery2HR||null,
-      hr_samples:c.hrSamples||[]
+      peak_hr:c.peakHR,rpe:c.rpe,calories:c.calories,hr_recovery_1min:c.recovery,hr_recovery_2min:c.recovery2
     });
     if(x.error)throw x.error;
   }
-  return w;
 }
 
 async function replaceCloudData(data,userId){

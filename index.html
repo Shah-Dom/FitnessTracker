@@ -134,48 +134,6 @@ window.hideMyFitnessSplash = function () {
 <div><label>1-min HR Recovery</label><input type="number" id="hrRecovery"></div>
 <div><label>2-min HR Recovery</label><input type="number" id="hrRecovery2"></div>
 </div>
-
-<div id="hrCardioPanel" class="hr-panel" data-mode="idle">
-  <div class="hr-panel-header">
-    <div><h3>❤️ HR Monitor</h3><p class="muted">Bluetooth HR is recorded only when you explicitly start starting-HR or cardio recording.</p></div>
-    <div class="hr-connection"><span id="hrConnectionDot" class="hr-dot"></span><strong id="hrConnectionStatus">Not connected</strong></div>
-  </div>
-  <div id="hrMessage" class="message"></div>
-  <div class="actions">
-    <button class="btn" id="connectHRBtn" type="button">Connect HR Monitor</button>
-    <button class="btn" id="recordStartingHRBtn" type="button" disabled>Record Starting HR</button>
-  </div>
-  <div class="hr-starting-row">
-    <div><span class="small muted">Starting HR</span><strong id="startingHRStatus">—</strong></div>
-    <div><span class="small muted">Live HR</span><strong id="liveHRCompact">—</strong></div>
-  </div>
-
-  <div class="hr-cardio-controls">
-    <div class="hr-live-main"><span class="small muted">CARDIO</span><strong id="liveHR">—</strong></div>
-    <div class="hr-stat"><span>Average</span><strong id="liveAverageHR">—</strong></div>
-    <div class="hr-stat"><span>Maximum</span><strong id="liveMaximumHR">—</strong></div>
-    <div class="hr-stat"><span>Time</span><strong id="cardioElapsed">00:00</strong></div>
-  </div>
-  <div class="actions">
-    <button class="btn-primary" id="startCardioBtn" type="button" disabled>▶ Start Cardio</button>
-    <button class="btn-danger" id="finishCardioBtn" type="button" disabled>⏹ Finish Cardio</button>
-  </div>
-  <div class="hr-chart-wrap"><canvas id="hrLiveChart"></canvas></div>
-
-  <div class="hr-recovery" id="hrRecoveryPanel">
-    <div class="hr-recovery-header"><strong>Recovery</strong><span id="recoveryTimer">Ready</span></div>
-    <div class="hr-progress"><span id="recoveryProgress"></span></div>
-    <div class="hr-recovery-grid">
-      <div><span>End HR</span><strong id="endHR">—</strong></div>
-      <div><span>1 min</span><strong id="recovery1HR">Waiting…</strong></div>
-      <div><span>2 min</span><strong id="recovery2HR">Waiting…</strong></div>
-      <div><span>1-min recovery</span><strong id="recovery1Value">—</strong></div>
-      <div><span>2-min recovery</span><strong id="recovery2Value">—</strong></div>
-    </div>
-    <p class="muted">Recovery is automatic after Finish Cardio. Keep the app visible; Android may suspend Web Bluetooth when the screen is locked.</p>
-  </div>
-</div>
-
 <p class="muted">For treadmill progress testing, keep speed and incline constant. That lets us determine whether your HR and RPE improve at the same workload.</p>
 <div class="actions"><button class="btn-primary" id="saveWorkoutBtn">Save Workout</button><button class="btn" id="clearWorkoutBtn">Clear</button><button class="btn" id="getAiReportBtn" hidden>🤖 Ask AI Coach to Report on Last Session</button></div>
 </div>
@@ -274,7 +232,6 @@ window.hideMyFitnessSplash = function () {
 <script src="js/config.js"></script>
 <script src="js/supabase.js"></script>
 <script src="js/storage.js"></script>
-<script src="js/heart-rate.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
